@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,17 +18,41 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState(sampleProducts);
 
-  const handleSearch = () => {
-    // In a real app, you'd fetch data based on searchTerm
-    // For now, we'll just filter the sample data if you want to implement it
-    // Or simply keep showing all sample data
-    console.log('Searching for:', searchTerm);
-    // Example filter (optional for now):
-    // const filteredResults = sampleProducts.filter(product =>
-    //   product.name.toLowerCase().includes(searchTerm.toLowerCase())
-    // );
-    // setSearchResults(filteredResults);
-    setSearchResults(sampleProducts); // Keep showing all for now
+  // Debounce function
+  const debounce = <T extends (...args: unknown[]) => void>(
+    func: T,
+    delay: number
+  ) => {
+    let timeoutId: NodeJS.Timeout;
+    return (...args: Parameters<T>) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        func(...args);
+      }, delay);
+    };
+  };
+
+  const performSearch = (currentSearchTerm: string) => {
+    if (!currentSearchTerm.trim()) {
+      setSearchResults(sampleProducts); // Show all if search is empty
+      return;
+    }
+    const filteredResults = sampleProducts.filter(product =>
+      product.name.toLowerCase().includes(currentSearchTerm.toLowerCase())
+    );
+    setSearchResults(filteredResults);
+  };
+
+  // Debounced search function
+  const debouncedSearch = debounce(performSearch, 300); // 300ms delay
+
+  useEffect(() => {
+    debouncedSearch(searchTerm);
+  }, [searchTerm]); // Re-run effect when searchTerm changes
+
+  const handleSearchButtonClick = () => {
+    // Perform search immediately on button click, bypassing debounce
+    performSearch(searchTerm);
   };
 
   return (
@@ -63,7 +87,7 @@ function App() {
                 className="flex-grow dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700"
                 dir="rtl"
               />
-              <Button type="button" onClick={handleSearch} className="bg-primary-600 hover:bg-primary-700 text-white">
+              <Button type="button" onClick={handleSearchButtonClick} className="bg-primary-600 hover:bg-primary-700 text-white">
                 <Search className="ml-2 h-4 w-4" /> {/* ml-2 for RTL */}
                 جستجو
               </Button>
